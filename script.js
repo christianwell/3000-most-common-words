@@ -1,34 +1,42 @@
-/*
-  This is your site JavaScript code - you can add interactivity!
-*/
+// List of words
+const words = [
+  "abandon",
+  "ability",
+  "able",
+  "about",
+  "above",
+  "abroad",
+  // ... add the rest of the words here ...
+];
 
-// Print a message in the browser's dev tools console each time the page loads
-// Use your menus or right-click / control-click and choose "Inspect" > "Console"
-console.log("Hello 🌎");
+// Create list items dynamically
+const list = document.getElementById("checkbox-list");
+words.forEach((word) => {
+  const li = document.createElement("li");
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.id = word;
+  const label = document.createElement("label");
+  label.textContent = word;
+  label.htmlFor = word;
+  li.appendChild(checkbox);
+  li.appendChild(label);
+  list.appendChild(li);
+});
 
-/* 
-Make the "Click me!" button move when the visitor clicks it:
-- First add the button to the page by following the steps in the TODO 🚧
-*/
-const btn = document.querySelector("button"); // Get the button from the page
-if (btn) { // Detect clicks on the button
-  btn.onclick = function () {
-    // The 'dipped' class in style.css changes the appearance on click
-    btn.classList.toggle("dipped");
-  };
-}
+// Store checked state in local storage
+const storage = window.localStorage;
+list.addEventListener("change", (event) => {
+  if (event.target.type === "checkbox") {
+    const id = event.target.id;
+    const checked = event.target.checked;
+    storage.setItem(id, checked);
+  }
+});
 
-
-// ----- GLITCH STARTER PROJECT HELPER CODE -----
-
-// Open file when the link in the preview is clicked
-let goto = (file, line) => {
-  window.parent.postMessage(
-    { type: "glitch/go-to-line", payload: { filePath: file, line: line } }, "*"
-  );
-};
-// Get the file opening button from its class name
-const filer = document.querySelectorAll(".fileopener");
-filer.forEach((f) => {
-  f.onclick = () => { goto(f.dataset.file, f.dataset.line); };
+// Restore checked state from local storage
+words.forEach((word) => {
+  const checkbox = document.getElementById(word);
+  const checked = storage.getItem(word) === "true";
+  checkbox.checked = checked;
 });
