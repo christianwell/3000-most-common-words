@@ -1,17 +1,42 @@
 body {
   font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
 }
 
 #checkbox-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  width: 300px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 #checkbox-list li {
   margin-bottom: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+#checkbox-list li:last-child {
+  border-bottom: none;
 }
 
 #checkbox-list li input[type="checkbox"] {
   margin-right: 10px;
+}
+
+#checkbox-list li label {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+#checkbox-list li input[type="checkbox"]:checked + label {
+  color: #666;
+  text-decoration: line-through;
 }

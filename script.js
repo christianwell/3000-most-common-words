@@ -1,4 +1,3 @@
-
 // List of words
 const words = [
   "abandon",
