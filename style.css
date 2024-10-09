@@ -1,42 +1,46 @@
 body {
   font-family: Arial, sans-serif;
-  background-color: #f0f0f0;
+  background-color: #f7f7f7; /* added a light gray background */
 }
 
 #checkbox-list {
   list-style: none;
-  padding: 0;
-  margin: 0;
-  width: 300px;
-  margin: 20px auto;
-  padding: 20px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 20px; /* added some padding to the list */
+  margin: 20px auto; /* centered the list */
+  width: 300px; /* set a fixed width for the list */
+  background-color: #fff; /* added a white background */
+  border: 1px solid #ddd; /* added a light gray border */
+  border-radius: 10px; /* added a rounded corner effect */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* added a subtle shadow effect */
 }
 
 #checkbox-list li {
   margin-bottom: 10px;
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+  padding: 10px; /* added some padding to each list item */
+  border-bottom: 1px solid #ddd; /* added a light gray border bottom */
+  display: flex; /* made the list item a flex container */
+  align-items: center; /* centered the checkbox and label vertically */
 }
 
 #checkbox-list li:last-child {
-  border-bottom: none;
+  border-bottom: none; /* removed the border bottom from the last list item */
 }
 
 #checkbox-list li input[type="checkbox"] {
   margin-right: 10px;
+  width: 20px; /* set a fixed width for the checkbox */
+  height: 20px; /* set a fixed height for the checkbox */
+  cursor: pointer; /* changed the cursor to a pointer on hover */
 }
 
 #checkbox-list li label {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: #333; /* darkened the text color */
+  margin-left: 10px; /* added some margin to the left of the label */
 }
 
 #checkbox-list li input[type="checkbox"]:checked + label {
-  color: #666;
-  text-decoration: line-through;
+  color: #666; /* darkened the text color when checked */
+  text-decoration: line-through; /* added a strikethrough effect when checked */
 }
