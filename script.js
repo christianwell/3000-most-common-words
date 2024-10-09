@@ -1331,7 +1331,7 @@ const words = [
   "important",
   "impose",
   "impossible",
-    "impress",
+  "impress",
   "impressed",
   "impression",
   "impressive",
