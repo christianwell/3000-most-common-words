@@ -1,16 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#f7f7f7" />
     <title>3000 most common words</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+    <script src="timelapse.js" defer></script>
   </head>
   <body>
-    <h1>3000 most common words</h1>
-    <ul id="checkbox-list">
-      <button id="scroll-to-last-checked">Scroll to Last Checked Word</button>
-      <!-- List items will be generated dynamically -->
-    </ul>
+    <main>
+      <header>
+        <h1>3000 most common words<span class="title-dot">.</span></h1>
+        <p>Go down the list. Tick the words you know. Keep learning.</p>
+      </header>
+      <div id="storage-warning" class="notice" role="status" hidden></div>
+      <section class="stats" aria-label="Learning stats">
+        <div><span>Checked</span><strong id="known-count">0</strong><small id="known-caption"></small></div>
+        <div><span>Today</span><strong id="today-count">0</strong><small>words checked</small></div>
+        <div><span>ETA remaining</span><strong id="eta-count">—</strong><small id="eta-caption">Starts at 30 sec / word</small></div>
+      </section>
+      <progress id="collection-progress" value="0" max="100" aria-label="Words checked"></progress>
+      <div class="timer-row"><span>Study time <strong id="timer-value">00:00</strong></span><button id="timer-button" class="text-button">Start timer</button><span id="finish-time">Start studying for a finish estimate.</span></div>
 
-    <script src="script.js"></script>
+      <details id="camera-panel" class="camera-panel">
+        <summary><span aria-hidden="true">◉</span> Camera timelapse <span class="optional">optional · stays on your device</span></summary>
+        <div class="camera-content">
+          <p>Record yourself studying. Take a frame every few seconds and download a sped-up video. No audio, no uploads.</p>
+          <div class="camera-layout">
+            <div class="camera-preview"><video id="camera-preview" autoplay muted playsinline hidden></video><span id="camera-placeholder">Your camera is off</span></div>
+            <div class="camera-controls"><label for="capture-interval">Take a frame every</label><select id="capture-interval"><option value="1">1 second</option><option value="5" selected>5 seconds</option><option value="10">10 seconds</option></select><button id="enable-camera">Enable camera</button><button id="start-timelapse" class="primary" disabled>Start timelapse</button><button id="disable-camera" hidden>Turn camera off</button></div>
+          </div>
+          <p id="camera-status" role="status">You’ll be asked for camera permission. Recording starts only when you choose.</p>
+          <small>Keep this tab visible; capture pauses in the background. Up to 1,800 frames, exported at 12 fps. Download before leaving this page.</small>
+          <div id="timelapse-result" hidden><video id="timelapse-playback" controls playsinline></video><a id="download-timelapse" class="download-button">Download timelapse</a></div>
+        </div>
+      </details>
+
+      <section class="list-section" aria-label="Word checklist">
+        <div class="list-tools">
+          <div id="sticky-eta" class="sticky-eta" hidden><span>ETA remaining <strong id="sticky-eta-value"></strong></span><span id="sticky-finish-time"></span></div>
+          <div class="list-actions"><button id="scroll-to-last-checked">↓ Continue where I left off</button><label for="dictionary">Double-click to look up in <select id="dictionary"><option value="ordbogen">Ordbogen.com</option><option value="oxford">Oxford</option><option value="merriam">Merriam-Webster</option><option value="thesaurus">Thesaurus.com</option></select></label></div>
+          <div class="search-tools"><input id="word-search" type="search" placeholder="Find a word…" aria-label="Search words" /><select id="word-filter" aria-label="Filter words"><option value="all">All words</option><option value="unknown">Unchecked</option><option value="known">Checked</option><option value="notes">With a sentence</option></select></div>
+        </div>
+        <div class="list-caption"><span id="results-count"></span><span>↗ look up · + add a sentence</span></div>
+        <ul id="checkbox-list"></ul>
+        <p id="empty-results" class="empty-state" hidden>No words found. Try another search or filter.</p>
+      </section>
+      <footer>Checks and sentences are saved in this browser.</footer>
+    </main>
+    <div id="recording-dock" class="recording-dock" hidden><span class="recording-dot"></span><span id="recording-label">Recording timelapse</span><button id="stop-timelapse">Stop & create video</button></div>
   </body>
 </html>

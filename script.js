@@ -1,5 +1,8 @@
-// List of words
+// Oxford 3000 headwords, checked against The_Oxford_3000.pdf.
+// The PDF's combined “a, an” entry is shown as two checkboxes.
 const words = [
+  "a",
+  "an",
   "abandon",
   "ability",
   "able",
@@ -62,6 +65,7 @@ const words = [
   "again",
   "against",
   "age",
+  "aged",
   "agency",
   "agenda",
   "agent",
@@ -235,11 +239,11 @@ const words = [
   "bathroom",
   "battery",
   "battle",
-   "be v., auxiliary",
+  "be",
   "beach",
 "bean",
   "bear (deal with)",
-  "bear (animal) ",
+  "bear (animal)",
   "beat",
   "beautiful",
   "beauty",
@@ -248,8 +252,9 @@ const words = [
   "bed",
   "bedroom",
   "bee",
+  "beef",
   "beer",
-  "before prep",
+  "before",
   "beg",
   "begin",
   "beginning",  
@@ -1517,12 +1522,14 @@ const words = [
   "library",
   "licence",
   "lie1",
-  "lie2",
+  "lie2 (tell a lie)",
   "life",
   "lifestyle",
   "lift",
-  "light",
-  "like",
+  "light (from the sun/a lamp)",
+  "light (not heavy)",
+  "like (similar)",
+  "like (find sb/sth pleasant)",
   "likely",
   "limit",
   "limited",
@@ -1600,7 +1607,7 @@ const words = [
   "mass",
   "massive",
   "master",
-  "match",
+  "match (contest/correspond)",
   "matching",
   "material",
   "mathematics",
@@ -1645,7 +1652,8 @@ const words = [
   "milk",
   "million",
   "mind",
-  "mine",
+  "mine (belongs to me)",
+  "mine (hole in the ground)",
   "mineral",
   "minimum",
   "minister",
@@ -1781,7 +1789,7 @@ const words = [
   "occasionally",
   "occur",
   "ocean",
-  "o'clock",
+  "o’clock",
   "October",
   "odd",
   "of",
@@ -2109,7 +2117,8 @@ const words = [
   "quite",
   "quotation",
   "quote",
-  "race",
+  "race (competition)",
+  "race (people)",
   "racing",
   "radio",
   "railway",
@@ -2158,7 +2167,7 @@ const words = [
   "refer",
   "reference",
   "reflect",
-  "refuse",
+  "refuse1",
   "regard",
   "region",
   "regional",
@@ -2219,7 +2228,8 @@ const words = [
   "response",
   "responsibility",
   "responsible",
-  "rest",
+  "rest (remaining part)",
+  "rest (sleep/relax)",
   "restaurant",
   "result",
   "retain",
@@ -2244,7 +2254,8 @@ const words = [
   "river",
   "road",
   "robot",
-  "rock",
+  "rock (stone)",
+  "rock (music)",
   "role",
   "roll",
   "romantic",
@@ -2312,7 +2323,8 @@ const words = [
   "search",
   "season",
   "seat",
-  "second1",
+  "second1 (next after the first)",
+  "second1 (unit of time)",
   "secondary",
   "secondly",
   "secret",
@@ -2345,7 +2357,8 @@ const words = [
   "serve",
   "service",
   "session",
-  "set",
+  "set (put)",
+  "set (group)",
   "setting",
   "settle",
   "seven",
@@ -2532,7 +2545,8 @@ const words = [
   "steel",
   "steep",
   "step",
-  "stick",
+  "stick (push into/attach)",
+  "stick (piece of wood)",
   "sticky",
   "stiff",
   "still",
@@ -2636,7 +2650,8 @@ const words = [
   "teacher",
   "teaching",
   "team",
-  "tear",
+  "tear1",
+  "tear2",
   "technical",
   "technique",
   "technology",
@@ -2825,7 +2840,8 @@ const words = [
   "urge",
   "us",
   "use",
-  "used",
+  "used1",
+  "used2",
   "used to",
   "useful",
   "user",
@@ -2989,34 +3005,278 @@ const words = [
   // 
 ];
 
-// Create list items dynamically
-const list = document.getElementById("checkbox-list");
-words.forEach((word) => {
-  const li = document.createElement("li");
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.id = word;
-  const label = document.createElement("label");
-  label.textContent = word;
-  label.htmlFor = word;
-  li.appendChild(checkbox);
-  li.appendChild(label);
-  list.appendChild(li);
-});
+const $ = (id) => document.getElementById(id);
+const STORAGE_KEY = "word-by-word-v1";
+const vocabulary = [...new Set(words)];
+// When an old entry covered multiple meanings, keep its progress on the first
+// PDF sense only; the newly added meaning still needs to be learned.
+const legacyAliases = {
+  "be v., auxiliary": "be", "before prep": "before", "bear (animal) ": "bear (animal)",
+  lie2: "lie2 (tell a lie)", light: "light (from the sun/a lamp)", like: "like (similar)",
+  match: "match (contest/correspond)", mine: "mine (belongs to me)", "o'clock": "o’clock",
+  race: "race (competition)", refuse: "refuse1", rest: "rest (remaining part)",
+  rock: "rock (stone)", second1: "second1 (next after the first)", set: "set (put)",
+  stick: "stick (push into/attach)", tear: "tear1", used: "used1",
+};
+let state = { entries: {}, history: {}, lastWord: null, dictionary: "ordbogen" };
+let storageReadable = true;
 
-// Store checked state in local storage
-const storage = window.localStorage;
-list.addEventListener("change", (event) => {
-  if (event.target.type === "checkbox") {
-    const id = event.target.id;
-    const checked = event.target.checked;
-    storage.setItem(id, checked);
+function storageWarning(message) {
+  $("storage-warning").textContent = message;
+  $("storage-warning").hidden = false;
+}
+
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    if (!parsed.entries || !parsed.history) throw new Error("Invalid saved progress");
+    state = parsed;
+  } else {
+    // Import the original checklist once, without deleting its data.
+    [...vocabulary, ...Object.keys(legacyAliases)].forEach((word) => {
+      if (localStorage.getItem(word) === "true") {
+        state.entries[word] = { status: "known", note: "" };
+        state.lastWord = word;
+      }
+    });
+  }
+  Object.entries(legacyAliases).forEach(([oldWord, newWord]) => {
+    if (state.entries[oldWord]) {
+      state.entries[newWord] ||= state.entries[oldWord];
+      delete state.entries[oldWord];
+    }
+    if (state.lastWord === oldWord) state.lastWord = newWord;
+  });
+  Object.values(state.history).forEach((day) => {
+    day.words = [...new Set(day.words.map((word) => legacyAliases[word] || word))];
+  });
+} catch {
+  storageReadable = false;
+  storageWarning("Saved progress could not be read. You can practise, but this session won’t overwrite your saved data.");
+}
+
+function save() {
+  if (!storageReadable) return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    storageWarning("Your browser couldn’t save your progress. Keep this page open; new progress may be lost on reload.");
+    return false;
+  }
+}
+
+function dateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function dayHistory() {
+  const key = dateKey();
+  return state.history[key] ||= { words: [], reviews: 0, recalled: 0, seconds: 0 };
+}
+
+function duration(seconds) {
+  if (!seconds) return "0 min";
+  if (seconds < 60) return "< 1 min";
+  const minutes = Math.ceil(seconds / 60);
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
+
+let timerRunning = false;
+let timerStarted = false;
+let studySeconds = 0;
+const sessionChecked = new Set();
+let tickAt = Date.now();
+const rows = new Map();
+
+function renderMetrics() {
+  const known = vocabulary.filter((word) => state.entries[word]?.status === "known").length;
+  const today = state.history[dateKey()]?.words.length || 0;
+  const remaining = vocabulary.length - known;
+  $("known-count").textContent = known.toLocaleString();
+  $("known-caption").textContent = `of ${vocabulary.length.toLocaleString()} · ${Math.round(known / vocabulary.length * 100)}%`;
+  $("collection-progress").value = known / vocabulary.length * 100;
+  $("today-count").textContent = today;
+  const measured = sessionChecked.size >= 3 && studySeconds > 0;
+  const secondsPerWord = measured ? Math.max(1, studySeconds / sessionChecked.size) : 30;
+  const remainingSeconds = remaining * secondsPerWord;
+  $("eta-count").textContent = duration(remainingSeconds);
+  $("eta-caption").textContent = measured ? `${Math.round(secondsPerWord)} sec / word · your pace` : "Starts at 30 sec / word";
+  const minutes = Math.floor(studySeconds / 60);
+  $("timer-value").textContent = `${String(minutes).padStart(2, "0")}:${String(Math.floor(studySeconds % 60)).padStart(2, "0")}`;
+  $("timer-button").textContent = timerRunning ? "Pause timer" : timerStarted ? "Resume timer" : "Start timer";
+  if (!remaining) $("finish-time").textContent = "All words checked. You’re done!";
+  else if (timerRunning) {
+    const finish = new Date(Date.now() + remainingSeconds * 1000);
+    $("finish-time").textContent = `Done around ${finish.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}, ${finish.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} at this pace`;
+  } else $("finish-time").textContent = timerStarted ? "Paused · finish estimate resumes with timer" : "Start studying for a finish estimate.";
+  $("sticky-eta-value").textContent = $("eta-count").textContent;
+  $("sticky-finish-time").textContent = $("finish-time").textContent;
+  $("scroll-to-last-checked").disabled = !state.lastWord;
+}
+
+function dictionaryURL(word) {
+  const term = word.replace(/\s*\([^)]*\)/g, "").replace(/\d+\b/g, "").replace(/\s+(?:v\., auxiliary|prep)$/, "").trim();
+  const query = encodeURIComponent(term);
+  return {
+    ordbogen: `https://www.ordbogen.com/search?query=${query}`,
+    oxford: `https://www.oxfordlearnersdictionaries.com/search/english/?q=${query}`,
+    merriam: `https://www.merriam-webster.com/dictionary/${query}`,
+    thesaurus: `https://www.thesaurus.com/browse/${query}`,
+  }[$("dictionary").value];
+}
+
+function accountTime() {
+  const now = Date.now();
+  if (timerRunning && !document.hidden) {
+    const seconds = Math.max(0, Math.min(2, (now - tickAt) / 1000));
+    studySeconds += seconds;
+    dayHistory().seconds += seconds;
+  }
+  tickAt = now;
+}
+
+function filterWords() {
+  const search = $("word-search").value.trim().toLocaleLowerCase();
+  const filter = $("word-filter").value;
+  let count = 0;
+  rows.forEach((row, word) => {
+    const known = state.entries[word]?.status === "known";
+    const matches = word.toLocaleLowerCase().includes(search) && (filter === "all" || (filter === "known" && known) || (filter === "unknown" && !known) || (filter === "notes" && state.entries[word]?.note?.trim()));
+    row.hidden = !matches;
+    if (matches) count++;
+  });
+  $("results-count").textContent = `${count.toLocaleString()} words`;
+  $("empty-results").hidden = count > 0;
+  $("checkbox-list").hidden = count === 0;
+}
+
+function toggleSentence(word, row, button) {
+  let panel = row.querySelector(".sentence-panel");
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.className = "sentence-panel";
+    panel.id = `sentence-${vocabulary.indexOf(word)}`;
+    const label = document.createElement("label");
+    label.textContent = `Use “${word.trim()}” in a sentence (or write its meaning)`;
+    const input = document.createElement("textarea");
+    input.id = `note-${vocabulary.indexOf(word)}`;
+    label.htmlFor = input.id;
+    input.rows = 2;
+    input.placeholder = "Try a sentence in your own words…";
+    input.value = state.entries[word]?.note || "";
+    const status = document.createElement("small");
+    status.textContent = "Saved as you type · no automatic grading";
+    input.addEventListener("input", () => {
+      const entry = state.entries[word] ||= {};
+      entry.note = input.value;
+      button.classList.toggle("has-note", Boolean(input.value.trim()));
+      status.textContent = save() ? "Saved in this browser · no automatic grading" : "Not saved — keep this page open";
+    });
+    panel.append(label, input, status);
+    row.append(panel);
+    button.setAttribute("aria-controls", panel.id);
+  } else panel.hidden = !panel.hidden;
+  button.setAttribute("aria-expanded", String(!panel.hidden));
+  if (!panel.hidden) panel.querySelector("textarea").focus({ preventScroll: true });
+}
+
+function renderList() {
+  const fragment = document.createDocumentFragment();
+  vocabulary.forEach((word, index) => {
+    const li = document.createElement("li");
+    li.className = "word-row";
+    li.classList.toggle("known", state.entries[word]?.status === "known");
+    const main = document.createElement("div");
+    main.className = "word-main";
+    const number = document.createElement("span");
+    number.className = "word-number";
+    number.textContent = index + 1;
+    number.setAttribute("aria-hidden", "true");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = state.entries[word]?.status === "known";
+    checkbox.setAttribute("aria-label", `I know ${word}`);
+    checkbox.addEventListener("change", () => {
+      accountTime();
+      if (!timerStarted) { timerStarted = true; timerRunning = true; tickAt = Date.now(); }
+      const entry = state.entries[word] ||= {};
+      entry.status = checkbox.checked ? "known" : "learning";
+      if (checkbox.checked) {
+        sessionChecked.add(word);
+        const day = dayHistory();
+        if (!day.words.includes(word)) day.words.push(word);
+      } else sessionChecked.delete(word);
+      li.classList.toggle("known", checkbox.checked);
+      state.lastWord = word;
+      save();
+      renderMetrics();
+      if ($("word-filter").value !== "all") filterWords();
+    });
+    const button = document.createElement("button");
+    button.className = "word";
+    button.textContent = word.trim();
+    button.title = "Double-click to look up · Enter for keyboard lookup";
+    const lookup = () => window.open(dictionaryURL(word), "_blank", "noopener,noreferrer");
+    button.addEventListener("dblclick", lookup);
+    button.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); lookup(); } });
+    const actions = document.createElement("div");
+    actions.className = "word-actions";
+    const sentence = document.createElement("button");
+    sentence.className = "sentence-button";
+    sentence.classList.toggle("has-note", Boolean(state.entries[word]?.note?.trim()));
+    sentence.textContent = "+";
+    sentence.setAttribute("aria-label", `Write a sentence for ${word.trim()}`);
+    sentence.title = "Write a sentence or meaning";
+    sentence.setAttribute("aria-expanded", "false");
+    sentence.addEventListener("click", () => toggleSentence(word, li, sentence));
+    const link = document.createElement("a");
+    link.className = "lookup-link";
+    link.textContent = "↗";
+    link.href = dictionaryURL(word);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", `Look up ${word.trim()} (new tab)`);
+    link.title = "Look up in selected dictionary";
+    actions.append(sentence, link);
+    main.append(number, checkbox, button, actions);
+    li.append(main);
+    rows.set(word, li);
+    fragment.append(li);
+  });
+  $("checkbox-list").replaceChildren(fragment);
+  filterWords();
+}
+
+$("timer-button").addEventListener("click", () => { accountTime(); timerStarted = true; timerRunning = !timerRunning; renderMetrics(); save(); });
+$("word-search").addEventListener("input", filterWords);
+$("word-filter").addEventListener("change", filterWords);
+$("dictionary").value = ["ordbogen", "oxford", "merriam", "thesaurus"].includes(state.dictionary) ? state.dictionary : "ordbogen";
+$("dictionary").addEventListener("change", () => {
+  state.dictionary = $("dictionary").value;
+  rows.forEach((row, word) => { row.querySelector(".lookup-link").href = dictionaryURL(word); });
+  save();
+});
+$("scroll-to-last-checked").addEventListener("click", () => {
+  $("word-search").value = "";
+  $("word-filter").value = "all";
+  filterWords();
+  const row = rows.get(state.lastWord);
+  if (row) {
+    document.querySelector(".resumed")?.classList.remove("resumed");
+    row.classList.add("resumed");
+    row.scrollIntoView({ block: "center" });
+    row.querySelector("input").focus({ preventScroll: true });
   }
 });
-
-// Restore checked state from local storage
-words.forEach((word) => {
-  const checkbox = document.getElementById(word);
-  const checked = storage.getItem(word) === "true";
-  checkbox.checked = checked;
-});
+document.addEventListener("visibilitychange", () => { tickAt = Date.now(); save(); renderMetrics(); });
+window.addEventListener("pagehide", () => { accountTime(); save(); });
+new IntersectionObserver(([entry]) => {
+  $("sticky-eta").hidden = entry.isIntersecting || entry.boundingClientRect.top >= 0;
+}).observe(document.querySelector(".stats"));
+setInterval(() => { accountTime(); renderMetrics(); }, 1000);
+setInterval(save, 15000);
+renderList();
+renderMetrics();
+save();
